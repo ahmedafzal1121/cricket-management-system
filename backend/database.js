@@ -1,32 +1,18 @@
 const mysql = require('mysql2');
 
-// Railway will provide these environment variables
-const pool = mysql.createPool({
-    host: process.env.MYSQL_HOST || 'localhost',
-    port: process.env.MYSQL_PORT || 3306,
-    user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || 'Ahmed1234',
-    database: process.env.MYSQL_DATABASE || 'cricket_management',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+const connection = mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
 });
 
-const promisePool = pool.promise();
-
-// Test connection
-pool.getConnection((err, connection) => {
+connection.connect((err) => {
     if (err) {
-        console.error('❌ Database connection failed:', err.message);
-        console.error('Connection details:');
-        console.error('- Host:', process.env.MYSQL_HOST || 'localhost');
-        console.error('- User:', process.env.MYSQL_USER || 'root');
-        console.error('- Database:', process.env.MYSQL_DATABASE || 'cricket_management');
+        console.log("❌ Database connection failed:", err.message);
     } else {
-        console.log('✅ Database connected successfully');
-        console.log('📊 Database:', process.env.MYSQL_DATABASE || 'cricket_management');
-        connection.release();
+        console.log("✅ Database connected");
     }
 });
 
-module.exports = promisePool;
+module.exports = connection;

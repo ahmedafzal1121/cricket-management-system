@@ -4,7 +4,9 @@ const bodyParser = require('body-parser');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000; // ← Changed this line
+
+// IMPORTANT: use environment PORT for cloud hosting
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -40,7 +42,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-// Serve other HTML pages
+// HTML pages
 app.get('/teams.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/teams.html'));
 });
@@ -60,9 +62,9 @@ app.get('/stats.html', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);
-    res.status(500).json({ 
+    res.status(500).json({
         error: 'Internal Server Error',
-        message: err.message 
+        message: err.message
     });
 });
 
@@ -71,10 +73,10 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Not Found' });
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => { // ← Changed this line
+// IMPORTANT: cloud-compatible server start
+app.listen(PORT, () => {
     console.log(`🏏 Cricket Management System running on port ${PORT}`);
-    console.log(`📊 Dashboard: http://localhost:${PORT}`);
-    console.log(`👥 Teams: http://localhost:${PORT}/teams.html`);
-    console.log(`🏃 Players: http://localhost:${PORT}/players.html`);
+    console.log(`📊 Dashboard: /`);
+    console.log(`👥 Teams: /teams.html`);
+    console.log(`🏃 Players: /players.html`);
 });
