@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teams - Cricket Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <span class="cricket-ball">🏏</span>
+                <h1>PSL Cricket Management</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Dashboard</a></li>
+                    <li><a href="teams.html" class="active">Teams</a></li>
+                    <li><a href="players.html">Players</a></li>
+                    <li><a href="matches.html">Matches</a></li>
+                    <li><a href="stats.html">Statistics</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="table-container">
+            <div class="table-header">
+                <h3>PSL Teams Management</h3>
+                <button class="btn btn-primary" onclick="openTeamModal()">+ Add New Team</button>
+            </div>
+            
+            <div id="alertContainer"></div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Team Name</th>
+                        <th>Coach</th>
+                        <th>Home Ground</th>
+                        <th>Founded</th>
+                        <th>Wins</th>
+                        <th>Losses</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="teamsTableBody">
+                    <tr>
+                        <td colspan="7" class="loading">
+                            <div class="spinner"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Team Modal -->
+    <div id="teamModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Team</h3>
+                <span class="close-modal" onclick="closeTeamModal()">&times;</span>
+            </div>
+            <form id="teamForm">
+                <input type="hidden" id="teamId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="teamName">Team Name *</label>
+                        <input type="text" id="teamName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="coachName">Coach Name</label>
+                        <input type="text" id="coachName">
+                    </div>
+                    <div class="form-group">
+                        <label for="homeGround">Home Ground</label>
+                        <input type="text" id="homeGround">
+                    </div>
+                    <div class="form-group">
+                        <label for="foundedYear">Founded Year</label>
+                        <input type="number" id="foundedYear" min="2000" max="2024">
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-danger" onclick="closeTeamModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save Team</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 PSL Cricket Management System | NUST Database Project</p>
+    </footer>
+
+    <script src="js/app.js"></script>
+    <script>
+        let currentTeamId = null;
+
+        // Load all teams
+        async function loadTeams() {
+            try {
+                const response = await fetch('http://localhost:3000/api/teams');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch teams');
+                }
+                const teams = await response.json();
+                
+                const tableBody = document.getElementById('teamsTableBody');
+                
+                if (!teams || teams.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <div class="empty-state-icon">🏏</div>
+                                <p>No teams found. Add your first team!</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tableBody.innerHTML = teams.map(team => `
+                    <tr>
+                        <td><strong>${team.team_name}</strong></td>
+                        <td>${team.coach_name || 'N/A'}</td>
+                        <td>${team.home_ground || 'N/A'}</td>
+                        <td>${team.founded_year || 'N/A'}</td>
+                        <td><span class="badge badge-success">${team.wins}</span></td>
+                        <td><span class="badge badge-danger">${team.losses}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-primary btn-small" onclick="editTeam(${team.team_id})">Edit</button>
+                                <button class="btn btn-danger btn-small" onclick="deleteTeam(${team.team_id}, '${team.team_name}')">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading teams:', error);
+                showAlert('Error loading teams', 'error');
+                document.getElementById('teamsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div class="empty-state-icon">❌</div>
+                            <p>Error loading teams. Please check console.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Open team modal
+        function openTeamModal() {
+            currentTeamId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Team';
+            document.getElementById('teamForm').reset();
+            document.getElementById('teamModal').classList.add('active');
+        }
+
+        // Close team modal
+        function closeTeamModal() {
+            document.getElementById('teamModal').classList.remove('active');
+        }
+
+        // Edit team
+        async function editTeam(teamId) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/teams/${teamId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch team');
+                }
+                const team = await response.json();
+                
+                currentTeamId = teamId;
+                document.getElementById('modalTitle').textContent = 'Edit Team';
+                document.getElementById('teamName').value = team.team_name;
+                document.getElementById('coachName').value = team.coach_name || '';
+                document.getElementById('homeGround').value = team.home_ground || '';
+                document.getElementById('foundedYear').value = team.founded_year || '';
+                
+                document.getElementById('teamModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading team:', error);
+                showAlert('Error loading team details', 'error');
+            }
+        }
+
+   
+// Delete team - UPDATED VERSION
+async function deleteTeam(teamId, teamName) {
+    const confirmMsg = `⚠️ WARNING: Are you sure you want to delete "${teamName}"?\n\n` +
+                      `This will PERMANENTLY:\n` +
+                      `✗ Delete ALL players in this team\n` +
+                      `✗ Delete ALL matches involving this team\n` +
+                      `✗ Adjust win/loss records for opponent teams\n\n` +
+                      `This action CANNOT be undone!\n\n` +
+                      `Type "DELETE" in the next prompt to confirm.`;
+    
+    if (!confirm(confirmMsg)) return;
+    
+    const confirmation = prompt('Type DELETE to confirm:');
+    if (confirmation !== 'DELETE') {
+        alert('Deletion cancelled.');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`http://localhost:3000/api/teams/${teamId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const details = data.details || {};
+            let successMsg = `${data.message}\n\n`;
+            successMsg += `Team: ${details.team_name || teamName}\n`;
+            successMsg += `Players deleted: ${details.players_deleted || 0}\n`;
+            successMsg += `Matches deleted: ${details.matches_deleted || 0}\n`;
+            successMsg += `Opponent records updated: ${details.opponent_records_updated || 0}`;
+            
+            alert(successMsg);
+            showAlert('Team and all associated data deleted successfully', 'success');
+            loadTeams();
+        } else {
+            showAlert(data.error || 'Error deleting team', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting team:', error);
+        showAlert('Network error. Please try again.', 'error');
+    }
+}
+        // Handle form submission
+        document.getElementById('teamForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const teamData = {
+                team_name: document.getElementById('teamName').value,
+                coach_name: document.getElementById('coachName').value,
+                home_ground: document.getElementById('homeGround').value,
+                founded_year: document.getElementById('foundedYear').value || null
+            };
+            
+            try {
+                const url = currentTeamId 
+                    ? `http://localhost:3000/api/teams/${currentTeamId}`
+                    : 'http://localhost:3000/api/teams';
+                
+                const method = currentTeamId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(teamData)
+                });
+                
+                if (response.ok) {
+                    showAlert(currentTeamId ? 'Team updated successfully' : 'Team created successfully', 'success');
+                    closeTeamModal();
+                    loadTeams();
+                } else {
+                    throw new Error('Failed to save team');
+                }
+            } catch (error) {
+                console.error('Error saving team:', error);
+                showAlert('Error saving team', 'error');
+            }
+        });
+
+        // Show alert
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            if (!alertContainer) return;
+            
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        // Load teams on page load
+        window.addEventListener('DOMContentLoaded', loadTeams);
+    </script>
+</body>
+</html>

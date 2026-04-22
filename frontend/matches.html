@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matches - Cricket Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <span class="cricket-ball">🏏</span>
+                <h1>PSL Cricket Management</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Dashboard</a></li>
+                    <li><a href="teams.html">Teams</a></li>
+                    <li><a href="players.html">Players</a></li>
+                    <li><a href="matches.html" class="active">Matches</a></li>
+                    <li><a href="stats.html">Statistics</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="table-container">
+            <div class="table-header">
+                <h3>PSL Matches</h3>
+                <button class="btn btn-primary" onclick="openMatchModal()">+ Add New Match</button>
+            </div>
+            
+            <div id="alertContainer"></div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Team 1</th>
+                        <th>Score</th>
+                        <th>Team 2</th>
+                        <th>Score</th>
+                        <th>Venue</th>
+                        <th>Winner</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="matchesTableBody">
+                    <tr>
+                        <td colspan="9" class="loading">
+                            <div class="spinner"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Match Modal -->
+    <div id="matchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Match</h3>
+                <span class="close-modal" onclick="closeMatchModal()">&times;</span>
+            </div>
+            <form id="matchForm">
+                <input type="hidden" id="matchId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="team1Id">Team 1 *</label>
+                        <select id="team1Id" required>
+                            <option value="">Select Team</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="team2Id">Team 2 *</label>
+                        <select id="team2Id" required>
+                            <option value="">Select Team</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="matchDate">Match Date *</label>
+                        <input type="date" id="matchDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="venue">Venue</label>
+                        <input type="text" id="venue" placeholder="e.g., Gaddafi Stadium">
+                    </div>
+                    <div class="form-group">
+                        <label for="matchType">Match Type</label>
+                        <select id="matchType">
+                            <option value="T20">T20</option>
+                            <option value="ODI">ODI</option>
+                            <option value="Test">Test</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status">
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Ongoing">Ongoing</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="scoreSection" style="display:none; margin-top:1.5rem;">
+                    <h4 style="margin-bottom:1rem;">Match Results</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="team1Score">Team 1 Score (e.g., 180/6)</label>
+                            <input type="text" id="team1Score" placeholder="180/6">
+                        </div>
+                        <div class="form-group">
+                            <label for="team2Score">Team 2 Score (e.g., 175/8)</label>
+                            <input type="text" id="team2Score" placeholder="175/8">
+                        </div>
+                        <div class="form-group">
+                            <label for="matchWinnerId">Match Winner</label>
+                            <select id="matchWinnerId">
+                                <option value="">Select Winner</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="manOfMatch">Man of Match</label>
+                            <select id="manOfMatch">
+                                <option value="">Select Player</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-danger" onclick="closeMatchModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save Match</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 PSL Cricket Management System | NUST Database Project</p>
+    </footer>
+
+    <script src="js/app.js"></script>
+    <script>
+        let currentMatchId = null;
+
+        // Load all matches
+        async function loadMatches() {
+            try {
+                const response = await fetch('http://localhost:3000/api/matches');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch matches');
+                }
+                const matches = await response.json();
+                
+                const tableBody = document.getElementById('matchesTableBody');
+                
+                if (!matches || matches.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <div class="empty-state-icon">🏆</div>
+                                <p>No matches found. Add your first match!</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tableBody.innerHTML = matches.map(match => {
+                    let statusClass = match.status === 'Completed' ? 'badge-success' : 
+                                     match.status === 'Ongoing' ? 'badge-warning' : 'badge-info';
+                    return `
+                        <tr>
+                            <td>${match.match_date || 'N/A'}</td>
+                            <td><strong>${match.team1_name}</strong></td>
+                            <td>${match.team1_score || '-'}</td>
+                            <td><strong>${match.team2_name}</strong></td>
+                            <td>${match.team2_score || '-'}</td>
+                            <td>${match.venue || '-'}</td>
+                            <td>${match.match_winner_name || '-'}</td>
+                            <td><span class="badge ${statusClass}">${match.status}</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-small" onclick="editMatch(${match.match_id})">Edit</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading matches:', error);
+                showAlert('Error loading matches', 'error');
+            }
+        }
+
+        // Load teams for dropdown
+        async function loadTeamsDropdown() {
+            try {
+                const response = await fetch('http://localhost:3000/api/teams');
+                const teams = await response.json();
+                
+                const team1Select = document.getElementById('team1Id');
+                const team2Select = document.getElementById('team2Id');
+                const winnerSelect = document.getElementById('matchWinnerId');
+                
+                const options = teams.map(team => `<option value="${team.team_id}">${team.team_name}</option>`).join('');
+                
+                team1Select.innerHTML = '<option value="">Select Team</option>' + options;
+                team2Select.innerHTML = '<option value="">Select Team</option>' + options;
+                winnerSelect.innerHTML = '<option value="">Select Winner</option>' + options;
+            } catch (error) {
+                console.error('Error loading teams:', error);
+            }
+        }
+
+        // Load players for man of match
+        async function loadPlayersDropdown() {
+            try {
+                const response = await fetch('http://localhost:3000/api/players');
+                const players = await response.json();
+                
+                const momSelect = document.getElementById('manOfMatch');
+                momSelect.innerHTML = '<option value="">Select Player</option>' + 
+                    players.map(p => `<option value="${p.player_id}">${p.player_name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading players:', error);
+            }
+        }
+
+        // Open match modal
+        function openMatchModal() {
+            currentMatchId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Match';
+            document.getElementById('matchForm').reset();
+            document.getElementById('scoreSection').style.display = 'none';
+            document.getElementById('matchModal').classList.add('active');
+            loadTeamsDropdown();
+            loadPlayersDropdown();
+        }
+
+        // Close match modal
+        function closeMatchModal() {
+            document.getElementById('matchModal').classList.remove('active');
+        }
+
+        // Show score section when completed
+        // Show score section when status is Completed
+document.getElementById('status').addEventListener('change', function() {
+    const scoreSection = document.getElementById('scoreSection');
+    if (this.value === 'Completed') {
+        scoreSection.style.display = 'block';
+    } else {
+        scoreSection.style.display = 'none';
+    }
+});
+
+        // Edit match
+        async function editMatch(matchId) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/matches/${matchId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch match');
+                }
+                const match = await response.json();
+                
+                await loadTeamsDropdown();
+                await loadPlayersDropdown();
+                
+                currentMatchId = matchId;
+                document.getElementById('modalTitle').textContent = 'Edit Match';
+                document.getElementById('team1Id').value = match.team1_id || '';
+                document.getElementById('team2Id').value = match.team2_id || '';
+                document.getElementById('matchDate').value = match.match_date || '';
+                document.getElementById('venue').value = match.venue || '';
+                document.getElementById('matchType').value = match.match_type || 'T20';
+                document.getElementById('status').value = match.status || 'Scheduled';
+                document.getElementById('team1Score').value = match.team1_score || '';
+                document.getElementById('team2Score').value = match.team2_score || '';
+                document.getElementById('matchWinnerId').value = match.match_winner_id || '';
+                document.getElementById('manOfMatch').value = match.man_of_match || '';
+                
+                if (match.status === 'Completed') {
+                    document.getElementById('scoreSection').style.display = 'block';
+                }
+                
+                document.getElementById('matchModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading match:', error);
+                showAlert('Error loading match details', 'error');
+            }
+        }
+
+
+// Handle form submission - SEND ALL FIELDS
+document.getElementById('matchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const status = document.getElementById('status').value;
+    
+    const matchData = {
+        team1_id: document.getElementById('team1Id').value,
+        team2_id: document.getElementById('team2Id').value,
+        match_date: document.getElementById('matchDate').value,
+        venue: document.getElementById('venue').value,
+        match_type: document.getElementById('matchType').value,
+        status: status,
+        team1_score: document.getElementById('team1Score').value || null,
+        team2_score: document.getElementById('team2Score').value || null,
+        toss_winner_id: document.getElementById('matchWinnerId').value || null, // Note: This should be toss_winner_id
+        match_winner_id: document.getElementById('matchWinnerId').value || null,
+        man_of_match: document.getElementById('manOfMatch').value || null
+    };
+    
+    // Log data being sent
+    console.log('Sending match data:', matchData);
+    
+    try {
+        const url = currentMatchId 
+            ? `http://localhost:3000/api/matches/${currentMatchId}`
+            : 'http://localhost:3000/api/matches';
+        
+        const method = currentMatchId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(matchData)
+        });
+        
+        const data = await response.json();
+        
+        console.log('Server response:', data);
+        
+        if (response.ok) {
+            showAlert(currentMatchId ? 'Match updated successfully' : 'Match created successfully', 'success');
+            closeMatchModal();
+            loadMatches();
+        } else {
+            showAlert(data.error || 'Error saving match', 'error');
+            if (data.error && data.error.includes('no players')) {
+                alert(data.error);
+            }
+        }
+    } catch (error) {
+        console.error('Error saving match:', error);
+        showAlert('Error saving match', 'error');
+    }
+});
+        // Show alert
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            if (!alertContainer) return;
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${type === 'success' ? 'alert-success' : 'alert-error'}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        // Load matches on page load
+        window.addEventListener('DOMContentLoaded', loadMatches);
+    </script>
+</body>
+</html>

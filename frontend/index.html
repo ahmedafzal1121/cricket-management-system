@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <span class="cricket-ball">🏏</span>
+                <h1>Cricket Management System</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html" class="active">Dashboard</a></li>
+                    <li><a href="teams.html">Teams</a></li>
+                    <li><a href="players.html">Players</a></li>
+                    <li><a href="matches.html">Matches</a></li>
+                    <li><a href="stats.html">Statistics</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h2>Welcome to Cricket Management System</h2>
+            <p>Manage teams, players, matches, and statistics all in one place</p>
+        </section>
+
+        <div class="stats-grid" id="dashboardStats">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value" id="totalTeams">-</div>
+                <div class="stat-label">Total Teams</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏃</div>
+                <div class="stat-value" id="totalPlayers">-</div>
+                <div class="stat-label">Total Players</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-value" id="totalMatches">-</div>
+                <div class="stat-label">Total Matches</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="completedMatches">-</div>
+                <div class="stat-label">Completed Matches</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <h3>Team Standings</h3>
+            </div>
+            <table id="standingsTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team Name</th>
+                        <th>Matches Played</th>
+                        <th>Wins</th>
+                        <th>Losses</th>
+                        <th>Win %</th>
+                    </tr>
+                </thead>
+                <tbody id="standingsBody">
+                    <tr>
+                        <td colspan="6" class="loading">
+                            <div class="spinner"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <h3>Top Run Scorers</h3>
+            </div>
+            <table id="scorersTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player Name</th>
+                        <th>Team</th>
+                        <th>Role</th>
+                        <th>Runs</th>
+                        <th>Matches</th>
+                        <th>Average</th>
+                    </tr>
+                </thead>
+                <tbody id="scorersBody">
+                    <tr>
+                        <td colspan="7" class="loading">
+                            <div class="spinner"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Cricket Management System | NUST Database Project</p>
+    </footer>
+
+    <script src="js/app.js"></script>
+<script>
+    // Load dashboard data
+    async function loadDashboard() {
+        try {
+            // Load dashboard stats
+            const statsRes = await fetch('http://localhost:3000/api/stats/dashboard');
+            const stats = await statsRes.json();
+            
+            document.getElementById('totalTeams').textContent = stats.totalTeams || 0;
+            document.getElementById('totalPlayers').textContent = stats.totalPlayers || 0;
+            document.getElementById('totalMatches').textContent = stats.totalMatches || 0;
+            document.getElementById('completedMatches').textContent = stats.completedMatches || 0;
+
+            // Load team standings
+            const standingsRes = await fetch('http://localhost:3000/api/stats/team-standings');
+            const standings = await standingsRes.json();
+            
+            const standingsBody = document.getElementById('standingsBody');
+            
+            if (!Array.isArray(standings) || standings.length === 0) {
+                standingsBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">🏆</div>
+                            <p>No team standings available yet</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                standingsBody.innerHTML = standings.map((team, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${team.team_name}</strong></td>
+                        <td>${team.matches_played || 0}</td>
+                        <td>${team.wins || 0}</td>
+                        <td>${team.losses || 0}</td>
+                        <td>${team.win_percentage || 0}%</td>
+                    </tr>
+                `).join('');
+            }
+
+            // Load top scorers
+            const scorersRes = await fetch('http://localhost:3000/api/stats/top-scorers');
+            const scorers = await scorersRes.json();
+            
+            const scorersBody = document.getElementById('scorersBody');
+            
+            if (!Array.isArray(scorers) || scorers.length === 0) {
+                scorersBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div class="empty-state-icon">🏏</div>
+                            <p>No player statistics available yet</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                scorersBody.innerHTML = scorers.map((player, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${player.player_name}</strong></td>
+                        <td>${player.team_name || 'N/A'}</td>
+                        <td><span class="badge badge-info">${player.role}</span></td>
+                        <td>${player.runs_scored || 0}</td>
+                        <td>${player.matches_played || 0}</td>
+                        <td>${player.average || 0}</td>
+                    </tr>
+                `).join('');
+            }
+        } catch (error) {
+            console.error('Error loading dashboard:', error);
+            
+            // Show error messages in tables
+            document.getElementById('standingsBody').innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <p>Error loading data. Please check console.</p>
+                    </td>
+                </tr>
+            `;
+            
+            document.getElementById('scorersBody').innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <p>Error loading data. Please check console.</p>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // Load dashboard when page loads
+    window.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+</body>
+</html>

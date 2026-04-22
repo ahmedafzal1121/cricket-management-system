@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Players - Cricket Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <span class="cricket-ball">🏏</span>
+                <h1>PSL Cricket Management</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Dashboard</a></li>
+                    <li><a href="teams.html">Teams</a></li>
+                    <li><a href="players.html" class="active">Players</a></li>
+                    <li><a href="matches.html">Matches</a></li>
+                    <li><a href="stats.html">Statistics</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="table-container">
+            <div class="table-header">
+                <h3>PSL Players Management</h3>
+                <button class="btn btn-primary" onclick="openPlayerModal()">+ Add New Player</button>
+            </div>
+            
+            <div id="alertContainer"></div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Player Name</th>
+                        <th>Team</th>
+                        <th>Role</th>
+                        <th>Batting</th>
+                        <th>Bowling</th>
+                        <th>Jersey</th>
+                        <th>Nationality</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="playersTableBody">
+                    <tr>
+                        <td colspan="8" class="loading">
+                            <div class="spinner"></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Player Modal -->
+    <div id="playerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Player</h3>
+                <span class="close-modal" onclick="closePlayerModal()">&times;</span>
+            </div>
+            <form id="playerForm">
+                <input type="hidden" id="playerId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="playerName">Player Name *</label>
+                        <input type="text" id="playerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="teamId">Team *</label>
+                        <select id="teamId" required>
+                            <option value="">Select Team</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Role *</label>
+                        <select id="role" required>
+                            <option value="">Select Role</option>
+                            <option value="Batsman">Batsman</option>
+                            <option value="Bowler">Bowler</option>
+                            <option value="All-rounder">All-rounder</option>
+                            <option value="Wicket-keeper">Wicket-keeper</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="battingStyle">Batting Style</label>
+                        <select id="battingStyle">
+                            <option value="">Select Style</option>
+                            <option value="Right-hand">Right-hand</option>
+                            <option value="Left-hand">Left-hand</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bowlingStyle">Bowling Style</label>
+                        <select id="bowlingStyle">
+                            <option value="">Select Style</option>
+                            <option value="Fast">Fast</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Spin">Spin</option>
+                            <option value="N/A">N/A</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="jerseyNumber">Jersey Number</label>
+                        <input type="number" id="jerseyNumber" min="1" max="99">
+                    </div>
+                    <div class="form-group">
+                        <label for="dateOfBirth">Date of Birth</label>
+                        <input type="date" id="dateOfBirth">
+                    </div>
+                    <div class="form-group">
+                        <label for="nationality">Nationality</label>
+                        <input type="text" id="nationality" placeholder="e.g., Pakistan, India">
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-danger" onclick="closePlayerModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save Player</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 PSL Cricket Management System | NUST Database Project</p>
+    </footer>
+
+    <script src="js/app.js"></script>
+    <script>
+        let currentPlayerId = null;
+
+        // Load all players
+        async function loadPlayers() {
+            try {
+                const response = await fetch('http://localhost:3000/api/players');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch players');
+                }
+                const players = await response.json();
+                
+                const tableBody = document.getElementById('playersTableBody');
+                
+                if (!players || players.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="empty-state">
+                                <div class="empty-state-icon">🏃</div>
+                                <p>No players found. Add your first player!</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tableBody.innerHTML = players.map(player => `
+                    <tr>
+                        <td><strong>${player.player_name}</strong></td>
+                        <td>${player.team_name || '<em>Free Agent</em>'}</td>
+                        <td><span class="badge badge-info">${player.role}</span></td>
+                        <td>${player.batting_style || '-'}</td>
+                        <td>${player.bowling_style || '-'}</td>
+                        <td>${player.jersey_number || '-'}</td>
+                        <td>${player.nationality || '-'}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-primary btn-small" onclick="editPlayer(${player.player_id})">Edit</button>
+                                <button class="btn btn-danger btn-small" onclick="deletePlayer(${player.player_id}, '${player.player_name}')">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading players:', error);
+                showAlert('Error loading players', 'error');
+            }
+        }
+
+        // Load teams for dropdown
+        async function loadTeamsDropdown() {
+            try {
+                const response = await fetch('http://localhost:3000/api/teams');
+                const teams = await response.json();
+                
+                const teamSelect = document.getElementById('teamId');
+                teamSelect.innerHTML = '<option value="">Select Team</option>' + 
+                    (teams.map(team => `<option value="${team.team_id}">${team.team_name}</option>`).join(''));
+            } catch (error) {
+                console.error('Error loading teams:', error);
+            }
+        }
+
+        // Open player modal
+        function openPlayerModal() {
+            currentPlayerId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Player';
+            document.getElementById('playerForm').reset();
+            document.getElementById('playerModal').classList.add('active');
+            loadTeamsDropdown();
+        }
+
+        // Close player modal
+        function closePlayerModal() {
+            document.getElementById('playerModal').classList.remove('active');
+        }
+
+        // Edit player
+        async function editPlayer(playerId) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/players/${playerId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch player');
+                }
+                const player = await response.json();
+                
+                await loadTeamsDropdown();
+                
+                currentPlayerId = playerId;
+                document.getElementById('modalTitle').textContent = 'Edit Player';
+                document.getElementById('playerName').value = player.player_name;
+                document.getElementById('teamId').value = player.team_id || '';
+                document.getElementById('role').value = player.role || '';
+                document.getElementById('battingStyle').value = player.batting_style || '';
+                document.getElementById('bowlingStyle').value = player.bowling_style || '';
+                document.getElementById('jerseyNumber').value = player.jersey_number || '';
+                document.getElementById('dateOfBirth').value = player.date_of_birth ? player.date_of_birth.split('T')[0] : '';
+                document.getElementById('nationality').value = player.nationality || '';
+                
+                document.getElementById('playerModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading player:', error);
+                showAlert('Error loading player details', 'error');
+            }
+        }
+
+        // Delete player
+        async function deletePlayer(playerId, playerName) {
+            if (!confirm(`Are you sure you want to delete "${playerName}"?`)) return;
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/players/${playerId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showAlert('Player deleted successfully', 'success');
+                    loadPlayers();
+                } else {
+                    throw new Error('Failed to delete player');
+                }
+            } catch (error) {
+                console.error('Error deleting player:', error);
+                showAlert('Error deleting player', 'error');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('playerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const playerData = {
+                team_id: document.getElementById('teamId').value || null,
+                player_name: document.getElementById('playerName').value,
+                role: document.getElementById('role').value,
+                batting_style: document.getElementById('battingStyle').value,
+                bowling_style: document.getElementById('bowlingStyle').value,
+                jersey_number: document.getElementById('jerseyNumber').value || null,
+                date_of_birth: document.getElementById('dateOfBirth').value || null,
+                nationality: document.getElementById('nationality').value
+            };
+            
+            try {
+                const url = currentPlayerId 
+                    ? `http://localhost:3000/api/players/${currentPlayerId}`
+                    : 'http://localhost:3000/api/players';
+                
+                const method = currentPlayerId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(playerData)
+                });
+                
+                if (response.ok) {
+                    showAlert(currentPlayerId ? 'Player updated successfully' : 'Player created successfully', 'success');
+                    closePlayerModal();
+                    loadPlayers();
+                } else {
+                    throw new Error('Failed to save player');
+                }
+            } catch (error) {
+                console.error('Error saving player:', error);
+                showAlert('Error saving player', 'error');
+            }
+        });
+
+        // Show alert
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            if (!alertContainer) return;
+            
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        // Load players on page load
+        window.addEventListener('DOMContentLoaded', loadPlayers);
+    </script>
+</body>
+</html>
