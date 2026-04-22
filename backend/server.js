@@ -4,14 +4,14 @@ const bodyParser = require('body-parser');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; // ← Changed this line
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve static files from frontend folder with correct MIME types
+// Serve static files from frontend folder
 app.use(express.static(path.join(__dirname, '../frontend'), {
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('.js')) {
@@ -35,7 +35,7 @@ app.use('/api/teams', teamsRoutes);
 app.use('/api/matches', matchesRoutes);
 app.use('/api/stats', statsRoutes);
 
-// Root route - serve index.html
+// Root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
@@ -72,9 +72,9 @@ app.use((req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`🏏 Cricket Management System running on http://localhost:3000`);
-    console.log(`📊 Dashboard: http://localhost:3000`);
-    console.log(`👥 Teams: http://localhost:3000/teams.html`);
-    console.log(`🏃 Players: http://localhost:3000/players.html`);
+app.listen(PORT, '0.0.0.0', () => { // ← Changed this line
+    console.log(`🏏 Cricket Management System running on port ${PORT}`);
+    console.log(`📊 Dashboard: http://localhost:${PORT}`);
+    console.log(`👥 Teams: http://localhost:${PORT}/teams.html`);
+    console.log(`🏃 Players: http://localhost:${PORT}/players.html`);
 });
